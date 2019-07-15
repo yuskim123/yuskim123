@@ -14,7 +14,7 @@
 <meta name="Author" content="">
 <meta name="Keywords" content="">
 <meta name="Description" content="">
-<title>document</title>
+<title>document1</title>
 
 <!--[if lt IE 9]>
 <script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js" type="text/javascript"></script>
