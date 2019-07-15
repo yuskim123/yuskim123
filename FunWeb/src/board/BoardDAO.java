@@ -75,6 +75,60 @@ public class BoardDAO {
 			if(con!=null) try{con.close();} catch(SQLException ex) {}
 		}
 	}
+	public void reInsertBoard(BoardBean bb) {
+		Connection con=null;
+		PreparedStatement pstmt=null;
+		ResultSet rs=null;
+		int num=0;
+		try {
+			//1단계 드라이버 로더			//2단계 디비연결
+			con=getConnection();
+			 //3단계 sql
+			 String sql="select max(num) from board";
+			 pstmt=con.prepareStatement(sql);
+			 //4단계 
+			 rs=pstmt.executeQuery();
+			 //5단계
+			 if(rs.next()) {
+				 num=rs.getInt("max(num)")+1;
+			 }
+			 // 기존의 답글 순서 재배치
+			 // update 기존의 순서 re_seq +1수정 
+			 // 조건 같은그룹 동시에   re_seq 순서값 내꺼보다 큰값이 있는지 
+			 //                (답글을 달고자하는 글의 답글이 있는지 찾기)  
+				sql = "update board set re_seq=re_seq+1 where re_ref=? and re_seq>?";
+				pstmt = con.prepareStatement(sql);	
+				pstmt.setInt(1, bb.getRe_ref());
+				pstmt.setInt(2, bb.getRe_seq());
+				pstmt.executeUpdate();
+			 
+			 
+			//3단계 sql (insert) now()
+			 // 답글 추가  그룹번호 re_ref ==num   들여쓰기 re_lev 0  순서 re_seq 0     
+			 sql="insert into board(num,name,pass,subject,content,readcount,date,file,re_ref,re_lev,re_seq) values(?,?,?,?,?,?,now(),?,?,?,?)";
+			 pstmt=con.prepareStatement(sql);
+			 pstmt.setInt(1, num); //첫번째 물음표,값
+			 pstmt.setString(2, bb.getName());//두번째물음표,값;;
+			 pstmt.setString(3, bb.getPass());//세번째물음표,값
+			 pstmt.setString(4, bb.getSubject());
+			 pstmt.setString(5, bb.getContent());
+			 pstmt.setInt(6, 0); //readcount
+			 pstmt.setString(7, bb.getFile());
+			 pstmt.setInt(8, bb.getRe_ref());// 그룹번호 re_ref 그대로 사용
+			 pstmt.setInt(9, bb.getRe_lev()+1);//들여쓰기 re_lev +1
+			 pstmt.setInt(10, bb.getRe_seq()+1);//순서 re_seq +1
+			//4단계 실행
+			 pstmt.executeUpdate();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally {
+			//마무리작업 // 기억장소  con pstmt  rs 정리
+			if(rs!=null) try { rs.close();} catch(SQLException ex) {}
+			if(pstmt!=null) try{pstmt.close();} catch(SQLException ex) {}
+			if(con!=null) try{con.close();} catch(SQLException ex) {}
+		}
+	}
+	
 public List boardList(int startRow, int pageSize) {
 		
 		List boardList = new ArrayList();
@@ -118,48 +172,52 @@ public List boardList(int startRow, int pageSize) {
 		
 	}
 	//getBoardList()
-	public List getBoardList(int startRow,int pageSize) {
-		Connection con=null;
-		PreparedStatement pstmt=null;
-		ResultSet rs=null;
-		List boardList=new ArrayList();
-		try {
-			//1단계 드라이버 로더			//2단계 디비연결
-			con=getConnection();
-			 // 3단계 sql(select) 만들고 실행할 객체 생성
-//			 String sql="select * from board order by num desc";
-			String sql="select * from board order by num desc limit ?,?";
-			 pstmt=con.prepareStatement(sql);
-			 pstmt.setInt(1, startRow-1);
-			 pstmt.setInt(2, pageSize);
-			 // 4단계 : 결과저장 <= sql  구문 실행 select
-			 rs=pstmt.executeQuery();
-			 // 5단계  rs -> 첫행이동 => 한개의 글 정보를 저장할 공간 
-		 // BoardBean mb 객체생성  id변수 에 rs에서 가져온 id열 데이터저장 
-			// boardList 한칸에 한사람의 정보를 저장
-			 while(rs.next()) {
-				 // 한개의 글 정보를 저장할 객체생성
-				 BoardBean bb=new BoardBean();
-				 // 한개의 글 객체생성한 기억장소에 저장
-				 bb.setNum(rs.getInt("num"));
-				 bb.setSubject(rs.getString("subject"));
-				 bb.setName(rs.getString("name"));
-				 bb.setDate(rs.getDate("date"));
-				 bb.setReadcount(rs.getInt("readcount"));
-				 // 한개의 글 정보를 배열 한칸에 저장
-				 boardList.add(bb);
-			 }
-		} catch (Exception e) {
-			e.printStackTrace();
-		}finally {
-			//마무리
-			if(rs!=null) try { rs.close();} catch(SQLException ex) {}
-			if(pstmt!=null) try{pstmt.close();} catch(SQLException ex) {}
-			if(con!=null) try{con.close();} catch(SQLException ex) {}
-		}
-		return boardList;
+public List getBoardList(int startRow,int pageSize) {
+	Connection con=null;
+	PreparedStatement pstmt=null;
+	ResultSet rs=null;
+	List boardList=new ArrayList();
+	try {
+		//1단계 드라이버 로더			//2단계 디비연결
+		con=getConnection();
+		 // 3단계 sql(select) 만들고 실행할 객체 생성
+//		 String sql="select * from board order by num desc";
+//		String sql="select * from board order by num desc limit ?,?";
+		String sql="select * from board order by re_ref desc,re_seq asc limit ?,?";
+		 pstmt=con.prepareStatement(sql);
+		 pstmt.setInt(1, startRow-1);
+		 pstmt.setInt(2, pageSize);
+		 // 4단계 : 결과저장 <= sql  구문 실행 select
+		 rs=pstmt.executeQuery();
+		 // 5단계  rs -> 첫행이동 => 한개의 글 정보를 저장할 공간 
+	 // BoardBean mb 객체생성  id변수 에 rs에서 가져온 id열 데이터저장 
+		// boardList 한칸에 한사람의 정보를 저장
+		 while(rs.next()) {
+			 // 한개의 글 정보를 저장할 객체생성
+			 BoardBean bb=new BoardBean();
+			 // 한개의 글 객체생성한 기억장소에 저장
+			 bb.setNum(rs.getInt("num"));
+			 bb.setSubject(rs.getString("subject"));
+			 bb.setName(rs.getString("name"));
+			 bb.setDate(rs.getDate("date"));
+			 bb.setReadcount(rs.getInt("readcount"));
+			 bb.setRe_ref(rs.getInt("re_ref"));
+			 bb.setRe_lev(rs.getInt("re_lev"));
+			 bb.setRe_seq(rs.getInt("re_seq"));
+			 // 한개의 글 정보를 배열 한칸에 저장
+			 boardList.add(bb);
+		 }
+	} catch (Exception e) {
+		e.printStackTrace();
+	}finally {
+		//마무리
+		if(rs!=null) try { rs.close();} catch(SQLException ex) {}
+		if(pstmt!=null) try{pstmt.close();} catch(SQLException ex) {}
+		if(con!=null) try{con.close();} catch(SQLException ex) {}
 	}
-	
+	return boardList;
+}
+
 	//getBoard(num)
 	public BoardBean getBoard(int num) {
 		Connection con=null;
@@ -186,6 +244,9 @@ public List boardList(int startRow, int pageSize) {
 				 bb.setReadcount(rs.getInt("readcount"));
 				 bb.setContent(rs.getString("content"));
 				 bb.setFile(rs.getString("file"));
+				 bb.setRe_ref(rs.getInt("re_ref"));
+				 bb.setRe_lev(rs.getInt("re_lev"));
+				 bb.setRe_seq(rs.getInt("re_seq"));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -611,7 +672,7 @@ public List reboardList(int startRow, int pageSize) {
 	return boardList;
 	
 }
-public void reinsertBoard(BoardBean bb) {
+public void re1InsertBoard(BoardBean bb) {
 	
 	Connection con = null;
 	PreparedStatement prst = null;

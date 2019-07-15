@@ -55,28 +55,21 @@
 			BoardDAO bdao = new BoardDAO();
 
 			int count = bdao.getBoardCount();
+			//한화면에 보여줄 글 개수 설정
+			int pageSize = 15;
+			//페이지번호 가져오기
 			String pageNum = request.getParameter("pageNum");
+			//페이지번호를 안가지고 온 경우 => 무조건 1페이지
 			if (pageNum == null) {
 				pageNum = "1";
 			}
-			//한화면에 보여줄 글 개수 설정
-			int pageSize = 15;
-
 			int currentPage = Integer.parseInt(pageNum);
-			//페이지번호 가져오기
-			//페이지번호를 안가지고 온 경우 => 무조건 1페이지
 			// currentPage pageSize 이용 가져올 글의 첫행
-			int startRow = (currentPage - 1) * pageSize + 1;
-			// int endRow = 구하기
-			int endRow = currentPage * pageSize;
+			int startRow = ((currentPage - 1) * pageSize) + 1;
+			// currentPage pageSize 이용 가져올 글의 끝행
+			int endRow = currentPage * 10;
 
-			List<BoardBean> boardList = null;
-			if (count != 0) {
-				boardList = bdao.getBoardList(startRow, pageSize);
-			}
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd");
-			int num = count - (currentPage - 1) * pageSize;
-			BoardBean bb = new BoardBean();
+			List boardList = bdao.getBoardList(startRow, pageSize);
 		%>
 		<article>
 			<h1>Notice</h1>
@@ -90,26 +83,24 @@
 				</tr>
 				<%
 					for (int i = 0; i < boardList.size(); i++) {
-						bb = boardList.get(i);
+						BoardBean bb = (BoardBean) boardList.get(i);
 				%>
 				<tr>
 					<td><%=bb.getNum()%></td>
 					<td class="left">
-						<%
-							int wid = 0;
-								if (bb.getRe_lev() > 0) {
-									wid = bb.getRe_lev() * 10;
-						%> <img src="level.gif" width="<%=wid%>" height="10"> <img
-						src="re.gif"> <%
- 	}
- %> <a
-						href="content.jsp?num=<%=bb.getNum()%>&readcount=<%=bb.getReadcount()%>">
-
-							<%=bb.getSubject()%></a>
-					</td>
+					<%int wid = 0;
+						if (bb.getRe_lev() > 0) {
+							wid = bb.getRe_lev() * 10;
+				%> 
+				<img src="level.gif" width="<%=wid%>" height="10"> <img
+				src="re.gif"> <%
+ 				}
+ 				%> 
+ 				<a href="content.jsp?num=<%=bb.getNum()%>&readcount=<%=bb.getReadcount()%>">
+ 				<%=bb.getSubject()%></a>
+				</td>
 					<td><%=bb.getName()%></td>
-
-					<td><%=sdf.format(bb.getDate())%></td>
+					<td><%=bb.getDate()%></td>
 					<td><%=bb.getReadcount()%></td>
 				</tr>
 				<%
@@ -122,13 +113,14 @@
 						type="submit" value="search" class="btn">
 				</form>
 				<input type="button" value="글쓰기" class="btn"
-					onclick="location.href='writeForm.jsp'">
+					onclick="location.href='fwriteForm.jsp'">
 			</div>
 			<div class="clear"></div>
 			<div id="page_control">
+				<div id="page_control">
 				<%
 					if (count != 0) {
-						//게시판 전체 페이지 수 구하기 
+						//게시판 전체 페이지 수 구하기
 						//한 화면에 보여줄 페이지수
 						int pageCount = count / pageSize + (count % pageSize == 0 ? 0 : 1);
 						int pageBlock = 10;
@@ -141,17 +133,16 @@
 						}
 						//출력
 						if (currentPage <= startPage) {
-							// 						int num=count-(currentPage-1)*pageSize;
 				%>
 				[이전]&nbsp;
 				<%
 					} else {
 				%>
-				<a href="noticeSearch.jsp?pageNum=<%=currentPage - 1%>">[이전]</a>
+				<a href="notice.jsp?pageNum=<%=currentPage - 1%>">[이전]</a>
 				<%
 					}
 						for (int i = startPage; i <= endPage; i++) {
-				%><a href="noticeSearch.jsp?pageNum=<%=i%>"> [<%=i%>]
+				%><a href="notice.jsp?pageNum=<%=i%>">[<%=i%>]
 				</a>
 				<%
 					}
@@ -160,7 +151,7 @@
 				[다음]<%
 					} else {
 				%>
-				<a href="noticeSearch.jsp?pageNum=<%=currentPage + 1%>">[다음]</a>
+				<a href="notice.jsp?pageNum=<%=currentPage + 1%>">[다음]</a>
 				<%
 					}
 					}
@@ -180,6 +171,11 @@
 	</div>
 </body>
 </html>
+
+
+
+
+
 
 
 
